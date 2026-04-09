@@ -347,6 +347,40 @@
 
     .fade-in { animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Loading step indicator */
+    .tp-loading {
+      padding: 16px 20px 16px 48px;
+      position: relative;
+      border-bottom: 1px solid var(--surface2);
+    }
+    .tp-loading::before {
+      content: '';
+      position: absolute; left: 24px; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+    .tp-loading-icon {
+      position: absolute; left: 16px; top: 16px;
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--accent-light);
+      border-top-color: var(--accent);
+      animation: spin 0.7s linear infinite;
+      z-index: 1;
+    }
+    .tp-loading-text {
+      font-size: 13px; font-weight: 500; color: var(--accent);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tp-loading-dots::after {
+      content: '';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0% { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+    }
   </style>
 </head>
 <body>
@@ -640,6 +674,7 @@ async function runSearch() {
   document.getElementById('tpBadge').classList.add('running');
 
   renderPipeline(1);
+  showLoadingStep(STEP_NAMES[0]);
   const startTime = Date.now();
 
   try {
@@ -659,40 +694,79 @@ async function runSearch() {
 
       buffer += decoder.decode(value, { stream: true });
 
-      // Parse SSE events from buffer
-      const lines = buffer.split('\n');
-      buffer = lines.pop(); // keep incomplete line
+      // Parse SSE events from buffer — split on double newline
+      let idx;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
 
-      let eventType = null;
-      let eventData = '';
-
-      for (const line of lines) {
-        if (line.startsWith('event: ')) {
-          eventType = line.slice(7).trim();
-        } else if (line.startsWith('data: ')) {
-          eventData = line.slice(6);
-        } else if (line === '' && eventType && eventData) {
-          // Complete event — process it
+        let eventType = null;
+        let eventData = '';
+        for (const line of block.split('\n')) {
+          if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+          else if (line.startsWith('data: ')) eventData = line.slice(6);
+        }
+        if (eventType && eventData) {
           handleSSEEvent(eventType, JSON.parse(eventData), startTime);
-          eventType = null;
-          eventData = '';
         }
       }
     }
 
+    // Process any remaining data in buffer after stream ends
+    if (buffer.trim()) {
+      let eventType = null;
+      let eventData = '';
+      for (const line of buffer.split('\n')) {
+        if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+        else if (line.startsWith('data: ')) eventData = line.slice(6);
+      }
+      if (eventType && eventData) {
+        handleSSEEvent(eventType, JSON.parse(eventData), startTime);
+      }
+    }
+
   } catch (err) {
+    removeLoadingStep();
     document.getElementById('resultsArea').style.display = 'block';
     document.getElementById('answerBody').innerHTML =
       `<div style="color:var(--red)">Error: ${err.message}</div>`;
   }
 
+  removeLoadingStep();
   document.getElementById('tpBadge').classList.remove('running');
   btn.disabled = false;
   btn.textContent = 'Research';
 }
 
+const STEP_LOADING_LABELS = [
+  'Starting session', 'Planning research', 'Decomposing query',
+  'Searching the web', 'Compressing memory', 'Drafting answer',
+  'Critiquing & filling gaps', 'Synthesizing final answer'
+];
+
+function showLoadingStep(label) {
+  removeLoadingStep();
+  const el = document.createElement('div');
+  el.className = 'tp-loading fade-in';
+  el.id = 'tp-loading-indicator';
+  el.innerHTML = `
+    <div class="tp-loading-icon"></div>
+    <div class="tp-loading-text">${label}<span class="tp-loading-dots"></span></div>
+  `;
+  document.getElementById('tpBody').appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function removeLoadingStep() {
+  const el = document.getElementById('tp-loading-indicator');
+  if (el) el.remove();
+}
+
 function handleSSEEvent(type, data, startTime) {
   if (type === 'step') {
+    // Remove loading indicator, show completed step
+    removeLoadingStep();
+
     // Mark completed in pipeline
     completedSteps.push(data.step);
     const nextStep = data.step < 8 ? data.step + 1 : 0;
@@ -705,6 +779,11 @@ function handleSSEEvent(type, data, startTime) {
     streamedSteps.push(data);
     appendStepToTimeline(data);
 
+    // Show loading for next step
+    if (data.step < 8) {
+      showLoadingStep(STEP_LOADING_LABELS[data.step]);
+    }
+
     // Collect refs as they come in (from research steps)
     if (data.data?.researched) {
       collectReferencesFromSteps();
@@ -712,6 +791,7 @@ function handleSSEEvent(type, data, startTime) {
   }
 
   if (type === 'done') {
+    removeLoadingStep();
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
     // Finalize pipeline
