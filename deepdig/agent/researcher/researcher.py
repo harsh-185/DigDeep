@@ -121,13 +121,19 @@ async def research_sub_queries_parallel(
         findings_per_sq = await asyncio.gather(*tasks)
 
         for sq, findings in zip(ready, findings_per_sq):
-            # Deduplicate by URL
+            # Deduplicate by URL within this sub-query only
+            local_seen = set()
             deduped = []
             for f in findings:
                 url = f["source"]
-                if url in seen_urls:
+                if url in local_seen:
                     dedup_count += 1
                     continue
+                # Track globally for stats, but don't skip cross-query duplicates
+                # Different sub-queries may extract different context from the same URL
+                if url in seen_urls:
+                    dedup_count += 1
+                local_seen.add(url)
                 seen_urls.add(url)
                 deduped.append(f)
 

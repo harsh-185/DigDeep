@@ -31,7 +31,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
 UI_DIR = os.path.join(ROOT_DIR, "ui")
 DEMO_DIR = os.path.join(ROOT_DIR, "demo")
 
-RELEVANCE_THRESHOLD = 0.15
+RELEVANCE_THRESHOLD = 0.05
 
 
 @app.get("/")
