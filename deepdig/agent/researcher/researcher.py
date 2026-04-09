@@ -28,6 +28,7 @@ def research_sub_query(query: str, max_result_tokens: int = 800) -> list[dict]:
             include_raw_content=False,
         )
     except Exception as e:
+        print(f"[DeepDig] Tavily search failed for '{query[:50]}': {e}")
         return [{"content": f"Search failed: {str(e)}", "source": "error"}]
 
     findings = []
