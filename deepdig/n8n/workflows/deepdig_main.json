@@ -1,0 +1,136 @@
+{
+  "name": "DeepDig Main Research",
+  "nodes": [
+    {
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "deepdig-v6",
+      "parameters": {
+        "path": "research",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      }
+    },
+    {
+      "id": "research-1",
+      "name": "Research Iteration 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/research",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "={{ $json.body?.question ?? $json.question ?? '' }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 180000
+        }
+      }
+    },
+    {
+      "id": "check-quality",
+      "name": "Quality Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [750, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-short-answer",
+              "leftValue": "={{ $json.answer?.length ?? 0 }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "followup-research",
+      "name": "Follow-up Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/research",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "=What are the most important gaps in the previous answer about: {{ $json.sub_queries?.[0]?.query ?? 'the research question' }}"
+            },
+            {
+              "name": "session_id",
+              "value": "={{ $json.session_id }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 180000
+        }
+      }
+    },
+    {
+      "id": "return-answer",
+      "name": "Return Answer",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1000, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Research Iteration 1", "type": "main", "index": 0 }]
+      ]
+    },
+    "Research Iteration 1": {
+      "main": [
+        [{ "node": "Quality Gate", "type": "main", "index": 0 }]
+      ]
+    },
+    "Quality Gate": {
+      "main": [
+        [{ "node": "Follow-up Research", "type": "main", "index": 0 }],
+        [{ "node": "Return Answer", "type": "main", "index": 0 }]
+      ]
+    },
+    "Follow-up Research": {
+      "main": [
+        [{ "node": "Return Answer", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1
+}

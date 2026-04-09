@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Geopolitical Analysis",
+    "category": "research",
+    "icon": "🌍",
+    "question": "How has the EU AI Act affected the competitive landscape between European and American AI startups in 2025-2026? Compare regulatory compliance costs, market access changes, and venture capital flows in both regions."
+  },
+  {
+    "name": "Technical Deep Dive",
+    "category": "research",
+    "icon": "🧠",
+    "question": "Compare the memory architectures used in GPT-4, Claude, and Gemini for handling long-context tasks. What are the trade-offs between sparse attention, sliding window, and retrieval-augmented approaches in terms of cost, latency, and accuracy?"
+  },
+  {
+    "name": "Trip Planning",
+    "category": "planning",
+    "icon": "✈️",
+    "question": "Plan a 7-day trip to Japan in April 2026 for two people on a $5,000 budget. Compare Tokyo vs Kyoto for cherry blossom viewing, recommend budget accommodations, must-visit spots, and local food experiences. Include transportation options between cities."
+  },
+  {
+    "name": "Academic Research",
+    "category": "research",
+    "icon": "📚",
+    "question": "What are the latest breakthroughs in CRISPR gene editing for treating sickle cell disease? Compare the approaches by Vertex/CRISPR Therapeutics, Editas Medicine, and Beam Therapeutics. What are the efficacy rates, costs, and ethical concerns?"
+  },
+  {
+    "name": "Personal Finance",
+    "category": "finance",
+    "icon": "💰",
+    "question": "Compare the best high-yield savings accounts, I-bonds, and short-term Treasury ETFs for parking $50,000 in emergency funds in 2026. What are the current rates, tax implications, liquidity differences, and FDIC/SIPC protections?"
+  },
+  {
+    "name": "Homework Help",
+    "category": "education",
+    "icon": "📝",
+    "question": "Explain the causes and consequences of the 2008 financial crisis. How did mortgage-backed securities, credit default swaps, and regulatory failures contribute? What reforms were implemented through Dodd-Frank, and how effective have they been?"
+  },
+  {
+    "name": "Product Comparison",
+    "category": "shopping",
+    "icon": "🛒",
+    "question": "Compare the MacBook Pro M4, Dell XPS 16, and ThinkPad X1 Carbon for a software developer who needs long battery life, good keyboard, and Linux compatibility. Include pricing, specs, and real-world developer reviews."
+  },
+  {
+    "name": "Health & Wellness",
+    "category": "health",
+    "icon": "🏥",
+    "question": "What does current research say about intermittent fasting (16:8 vs 5:2) for weight management and metabolic health? Compare the evidence for benefits, risks, and long-term sustainability. What do the latest 2025 clinical trials show?"
+  }
+]

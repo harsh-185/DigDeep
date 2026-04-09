@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeepDig</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --surface2: #f5f5f5;
+      --border: #e5e5e5;
+      --text: #171717;
+      --text-dim: #737373;
+      --text-light: #a3a3a3;
+      --accent: #2563eb;
+      --accent-light: #eff6ff;
+      --green: #16a34a;
+      --green-light: #f0fdf4;
+      --yellow: #ca8a04;
+      --yellow-light: #fefce8;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-lg: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .app { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+    /* Header */
+    .header { margin-bottom: 32px; }
+    .header h1 {
+      font-size: 24px; font-weight: 700; letter-spacing: -0.5px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .header h1 span { color: var(--accent); }
+    .header p { color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+
+/* Query input */
+    .input-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); margin-bottom: 24px;
+    }
+    .query-row { display: flex; gap: 12px; }
+    .query-input {
+      flex: 1; padding: 12px 16px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-family: inherit;
+      font-size: 14px; resize: none; min-height: 52px;
+      transition: border-color 0.2s; line-height: 1.5;
+    }
+    .query-input:focus { outline: none; border-color: var(--accent); }
+    .search-btn {
+      padding: 12px 28px; background: var(--accent); color: white;
+      border: none; border-radius: var(--radius-sm); font-family: inherit;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background 0.2s; white-space: nowrap; align-self: flex-end;
+    }
+    .search-btn:hover { background: #1d4ed8; }
+    .search-btn:disabled { background: var(--text-light); cursor: not-allowed; }
+
+    /* Quick queries */
+    .quick-queries {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+      padding-top: 14px; border-top: 1px solid var(--border);
+    }
+    .quick-btn {
+      padding: 6px 14px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 20px;
+      font-size: 12px; font-family: inherit; cursor: pointer;
+      color: var(--text-dim); transition: all 0.2s; display: flex;
+      align-items: center; gap: 5px;
+    }
+    .quick-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+    /* Pipeline steps */
+    .pipeline {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 20px; min-height: 38px;
+    }
+    .step-pill {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 500;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text-dim); transition: all 0.3s;
+    }
+    .step-pill.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+    .step-pill.done { background: var(--green-light); border-color: var(--green); color: var(--green); }
+    .step-pill .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor;
+    }
+    .step-pill.active .dot { animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Thought Process Timeline */
+    .thought-process {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      margin-bottom: 20px; overflow: hidden;
+    }
+    .tp-header {
+      padding: 14px 20px; display: flex; align-items: center;
+      justify-content: space-between; cursor: pointer;
+      user-select: none; border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .tp-header:hover { background: var(--surface2); }
+    .tp-header.open { border-bottom-color: var(--border); }
+    .tp-header h3 {
+      font-size: 13px; font-weight: 600; display: flex;
+      align-items: center; gap: 8px;
+    }
+    .tp-header .tp-badge {
+      font-size: 11px; font-weight: 500; color: var(--accent);
+      background: var(--accent-light); padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .tp-chevron {
+      font-size: 12px; color: var(--text-light);
+      transition: transform 0.2s;
+    }
+    .tp-header.open .tp-chevron { transform: rotate(180deg); }
+    .tp-body { display: none; padding: 0; }
+    .tp-body.open { display: block; }
+
+    .tp-step {
+      padding: 16px 20px 16px 48px;
+      position: relative;
+      border-bottom: 1px solid var(--surface2);
+    }
+    .tp-step:last-child { border-bottom: none; }
+    .tp-step::before {
+      content: '';
+      position: absolute; left: 24px; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+    .tp-step:first-child::before { top: 24px; }
+    .tp-step:last-child::before { bottom: calc(100% - 24px); }
+    .tp-step-icon {
+      position: absolute; left: 16px; top: 16px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--green); color: white;
+      font-size: 9px; display: flex; align-items: center;
+      justify-content: center; z-index: 1; font-weight: 700;
+    }
+    .tp-step-title {
+      font-size: 13px; font-weight: 600; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tp-step-title .step-num {
+      font-size: 10px; color: var(--text-light); font-weight: 500;
+    }
+    .tp-step-desc {
+      font-size: 12px; color: var(--text-dim); margin-bottom: 8px;
+    }
+
+    .tp-detail {
+      background: var(--surface2); border-radius: var(--radius-sm);
+      padding: 10px 14px; margin-top: 8px; font-size: 12px;
+    }
+    .tp-detail-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-light); margin-bottom: 6px;
+    }
+    .tp-sq-list { list-style: none; }
+    .tp-sq-list li {
+      padding: 4px 0; display: flex; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tp-sq-list li:last-child { border-bottom: none; }
+    .tp-sq-id {
+      color: var(--accent); font-weight: 700; font-size: 11px;
+      flex-shrink: 0; min-width: 18px;
+    }
+    .tp-sq-query { color: var(--text); font-weight: 500; }
+    .tp-sq-purpose { color: var(--text-light); font-size: 11px; margin-top: 1px; }
+
+    .tp-finding-group { margin-bottom: 8px; }
+    .tp-finding-group:last-child { margin-bottom: 0; }
+    .tp-finding-sq {
+      font-size: 11px; font-weight: 600; color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .tp-finding-item {
+      display: flex; align-items: baseline; gap: 6px;
+      padding: 2px 0; font-size: 11px;
+    }
+    .tp-finding-dot { color: var(--green); flex-shrink: 0; }
+    .tp-finding-url {
+      color: var(--accent); text-decoration: none;
+      word-break: break-all;
+    }
+    .tp-finding-url:hover { text-decoration: underline; }
+    .tp-finding-score {
+      color: var(--text-light); font-size: 10px;
+      flex-shrink: 0; margin-left: auto;
+    }
+
+    .tp-orch-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px;
+    }
+    .tp-orch-item {
+      display: flex; justify-content: space-between;
+      padding: 2px 0; font-size: 12px;
+    }
+    .tp-orch-key { color: var(--text-dim); }
+    .tp-orch-val { font-weight: 600; }
+
+    .tp-gap-item {
+      padding: 4px 0; border-bottom: 1px solid var(--border);
+    }
+    .tp-gap-item:last-child { border-bottom: none; }
+    .tp-gap-label { color: var(--orange); font-weight: 600; font-size: 11px; }
+    .tp-gap-query { color: var(--text-dim); font-size: 11px; }
+
+    /* Results area */
+    .results { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+    @media (max-width: 800px) { .results { grid-template-columns: 1fr; } }
+
+    .answer-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .answer-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .answer-header h2 { font-size: 14px; font-weight: 600; }
+    .answer-body { padding: 20px; font-size: 14px; line-height: 1.75; }
+    .answer-body h2 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; }
+    .answer-body h2:first-child { margin-top: 0; }
+    .answer-body h3 { font-size: 14px; font-weight: 600; margin: 16px 0 6px; }
+    .answer-body p { margin-bottom: 10px; }
+    .answer-body ul, .answer-body ol { margin: 8px 0 12px 20px; }
+    .answer-body li { margin-bottom: 4px; }
+    .answer-body strong { font-weight: 600; }
+    .answer-body a.ref-link {
+      color: var(--accent); text-decoration: none;
+      font-size: 11px; font-weight: 600; vertical-align: super;
+      padding: 0 2px; cursor: pointer;
+    }
+    .answer-body a.ref-link:hover { text-decoration: underline; }
+
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+    .stats-card, .subq-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+    }
+    .stats-card h3, .subq-card h3 {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 12px;
+    }
+    .stat-row {
+      display: flex; justify-content: space-between;
+      padding: 6px 0; font-size: 13px;
+    }
+    .stat-row .label { color: var(--text-dim); }
+    .stat-row .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .budget-bar {
+      height: 6px; background: var(--surface2); border-radius: 3px;
+      margin-top: 8px; overflow: hidden;
+    }
+    .budget-fill {
+      height: 100%; border-radius: 3px; transition: width 0.5s ease;
+      background: var(--green);
+    }
+    .budget-fill.warn { background: var(--yellow); }
+    .budget-fill.danger { background: var(--red); }
+
+    .refs-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      max-height: 500px; overflow-y: auto;
+    }
+    .refs-card h3 {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-dim);
+      padding: 16px 16px 8px;
+      position: sticky; top: 0; background: var(--surface);
+    }
+    .ref-item {
+      padding: 10px 16px; border-top: 1px solid var(--border);
+      font-size: 12px; transition: background 0.15s;
+    }
+    .ref-item:hover { background: var(--surface2); }
+    .ref-item .ref-num {
+      display: inline-block; width: 20px; height: 20px;
+      background: var(--accent-light); color: var(--accent);
+      border-radius: 4px; text-align: center; line-height: 20px;
+      font-size: 10px; font-weight: 700; margin-right: 8px;
+    }
+    .ref-item .ref-title { color: var(--text); font-weight: 500; display: block; margin-bottom: 2px; }
+    .ref-item .ref-url { color: var(--accent); text-decoration: none; font-size: 11px; word-break: break-all; }
+    .ref-item .ref-url:hover { text-decoration: underline; }
+    .ref-item .ref-query { color: var(--text-light); font-size: 11px; margin-top: 2px; }
+    .ref-item.highlight { background: var(--accent-light); }
+
+    .subq-item {
+      padding: 6px 0; font-size: 12px; color: var(--text-dim);
+      border-bottom: 1px solid var(--surface2);
+      display: flex; align-items: baseline; gap: 8px;
+    }
+    .subq-item:last-child { border-bottom: none; }
+    .subq-num { color: var(--accent); font-weight: 700; font-size: 11px; flex-shrink: 0; }
+
+    .loading-text {
+      color: var(--text-dim); font-size: 14px;
+      padding: 40px 20px; text-align: center;
+    }
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+      margin-right: 8px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state { text-align: center; padding: 80px 20px; color: var(--text-dim); }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+    .empty-state h3 { font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+    .empty-state p { font-size: 13px; max-width: 400px; margin: 0 auto; }
+
+    .answer-body code {
+      background: var(--surface2); padding: 2px 5px;
+      border-radius: 4px; font-size: 13px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1><span>Deep</span>Dig</h1>
+    <p>Research agent with adaptive orchestration &mdash; $0.10 budget, 3K tokens/call, adaptive pipeline</p>
+  </div>
+
+<div class="input-section">
+    <div class="query-row">
+      <textarea class="query-input" id="query" placeholder="Ask a complex research question..." rows="2"></textarea>
+      <button class="search-btn" id="searchBtn" onclick="runSearch()">Research</button>
+    </div>
+    <div class="quick-queries" id="quickQueries"></div>
+  </div>
+
+  <div class="pipeline" id="pipeline"></div>
+
+  <!-- Thought Process -->
+  <div class="thought-process" id="thoughtProcess" style="display:none">
+    <div class="tp-header" id="tpHeader" onclick="toggleThoughtProcess()">
+      <h3>Thought Process <span class="tp-badge" id="tpBadge">8 steps</span></h3>
+      <span class="tp-chevron">&#9660;</span>
+    </div>
+    <div class="tp-body" id="tpBody"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="resultsArea" style="display:none">
+    <div class="results">
+      <div class="answer-panel fade-in">
+        <div class="answer-header">
+          <h2 id="answerTitle">Answer</h2>
+          <span id="answerMeta" style="font-size:12px; color:var(--text-light)"></span>
+        </div>
+        <div class="answer-body" id="answerBody"></div>
+      </div>
+      <div class="sidebar">
+        <div class="stats-card" id="statsCard"></div>
+        <div class="subq-card" id="subqCard" style="display:none"></div>
+        <div class="refs-card" id="refsCard" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="emptyState">
+    <div class="empty-state">
+      <div class="icon">&#128270;</div>
+      <h3>Ask anything complex</h3>
+      <p>DeepDig breaks your question into sub-queries, researches each in parallel, critiques the draft, fills gaps, and synthesizes a cited answer &mdash; all within budget.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const STREAM_URL = '/research/stream';
+
+let queries = [];
+let currentRefs = [];
+let completedSteps = [];
+let streamedSteps = [];
+
+// Load demo queries
+fetch('/demo/demo_queries.json')
+  .catch(() => fetch('demo/demo_queries.json'))
+  .catch(() => null)
+  .then(r => r?.json())
+  .then(data => { if (data) { queries = data; renderQuickQueries(); } });
+
+setTimeout(() => {
+  if (queries.length === 0) {
+    queries = [
+      {icon:'🌍',name:'Geopolitical',question:'How has the EU AI Act affected the competitive landscape between European and American AI startups in 2025-2026?'},
+      {icon:'✈️',name:'Trip Planning',question:'Plan a 7-day trip to Japan in April 2026 for two people on a $5,000 budget.'},
+      {icon:'💰',name:'Finance',question:'Compare high-yield savings accounts, I-bonds, and short-term Treasury ETFs for parking $50,000 in emergency funds in 2026.'},
+      {icon:'📚',name:'Academic',question:'What are the latest breakthroughs in CRISPR gene editing for treating sickle cell disease?'},
+    ];
+    renderQuickQueries();
+  }
+}, 1000);
+
+function renderQuickQueries() {
+  document.getElementById('quickQueries').innerHTML = queries.map((q, i) =>
+    `<button class="quick-btn" onclick="selectQuery(${i})">${q.icon || '?'} ${q.name}</button>`
+  ).join('');
+}
+
+function selectQuery(i) {
+  const el = document.getElementById('query');
+  el.value = queries[i].question;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+const STEP_NAMES = ['Session','Orchestrate','Decompose','Research','Compress','Draft','Critique','Synthesize'];
+const STEP_ICONS = ['🔗','⚙️','🔍','🌐','📦','✨','🔬','✅'];
+
+function renderPipeline(activeStep) {
+  document.getElementById('pipeline').innerHTML = STEP_NAMES.map((name, i) => {
+    const num = i + 1;
+    let cls = 'step-pill';
+    if (completedSteps.includes(num)) cls += ' done';
+    else if (num === activeStep) cls += ' active';
+    return `<div class="${cls}"><span class="dot"></span>${num}. ${name}</div>`;
+  }).join('');
+}
+
+function toggleThoughtProcess() {
+  document.getElementById('tpHeader').classList.toggle('open');
+  document.getElementById('tpBody').classList.toggle('open');
+}
+
+// ── Render a single step into the thought process timeline ──
+function appendStepToTimeline(step) {
+  const icon = STEP_ICONS[step.step - 1] || '•';
+  let detailHtml = renderStepDetail(step);
+
+  const stepEl = document.createElement('div');
+  stepEl.className = 'tp-step fade-in';
+  stepEl.innerHTML = `
+    <div class="tp-step-icon">${icon}</div>
+    <div class="tp-step-title">
+      ${step.name}
+      <span class="step-num">Step ${step.step}</span>
+    </div>
+    <div class="tp-step-desc">${step.description}</div>
+    ${detailHtml}
+  `;
+
+  const body = document.getElementById('tpBody');
+  body.appendChild(stepEl);
+
+  // Auto-scroll the thought process to show latest step
+  stepEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderStepDetail(step) {
+  const d = step.data || {};
+  let html = '';
+
+  // Step 2: Orchestration Plan
+  if (step.step === 2 && d.max_sub_queries != null) {
+    html += `<div class="tp-detail">
+      <div class="tp-detail-label">Orchestration Decisions</div>
+      <div class="tp-orch-grid">
+        <div class="tp-orch-item"><span class="tp-orch-key">Sub-queries</span><span class="tp-orch-val">${d.max_sub_queries}</span></div>
+        <div class="tp-orch-item"><span class="tp-orch-key">Critique</span><span class="tp-orch-val" style="color:${d.enable_critique ? 'var(--green)' : 'var(--red)'}">${d.enable_critique ? 'ON' : 'OFF'}</span></div>
+        <div class="tp-orch-item"><span class="tp-orch-key">Gap queries</span><span class="tp-orch-val">${d.max_gap_queries || 0}</span></div>
+        <div class="tp-orch-item"><span class="tp-orch-key">Buffer size</span><span class="tp-orch-val">${d.buffer_size || '?'}</span></div>
+        <div class="tp-orch-item"><span class="tp-orch-key">Tavily results</span><span class="tp-orch-val">${d.tavily_results || '?'}/query</span></div>
+      </div>
+    </div>`;
+  }
+
+  // Step 3: Sub-queries
+  if (step.step === 3 && d.sub_queries?.length) {
+    html += `<div class="tp-detail">
+      <div class="tp-detail-label">Sub-queries generated</div>
+      <ul class="tp-sq-list">
+        ${d.sub_queries.map(sq => `
+          <li>
+            <span class="tp-sq-id">${sq.id}</span>
+            <div>
+              <div class="tp-sq-query">${sq.query}</div>
+              <div class="tp-sq-purpose">${sq.purpose}</div>
+            </div>
+          </li>
+        `).join('')}
+      </ul>
+    </div>`;
+  }
+
+  // Step 4 / 7: Research findings
+  if ((step.step === 4 || step.step === 7) && d.researched) {
+    const groups = d.researched.filter(r => r.findings_count > 0);
+    if (groups.length) {
+      html += `<div class="tp-detail">
+        <div class="tp-detail-label">Sources found</div>
+        ${groups.map(g => `
+          <div class="tp-finding-group">
+            <div class="tp-finding-sq">${g.sub_query.slice(0, 80)}</div>
+            ${g.findings.map(f => `
+              <div class="tp-finding-item">
+                <span class="tp-finding-dot">&#9679;</span>
+                <a class="tp-finding-url" href="${f.source}" target="_blank">${extractDomain(f.source)}</a>
+                ${f.relevance ? `<span class="tp-finding-score">${(f.relevance * 100).toFixed(0)}%</span>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `).join('')}
+      </div>`;
+    }
+    const notes = [];
+    if (d.dedup_count) notes.push(`${d.dedup_count} duplicate URLs removed`);
+    if (d.filtered_count) notes.push(`${d.filtered_count} low-relevance results filtered`);
+    if (notes.length) html += `<div class="tp-detail" style="margin-top:6px;color:var(--text-light)">${notes.join(' &middot; ')}</div>`;
+  }
+
+  // Step 5: Memory state
+  if (step.step === 5 && d.episodic_count != null) {
+    html += `<div class="tp-detail">
+      <div class="tp-detail-label">Memory State</div>
+      <div class="tp-orch-grid">
+        <div class="tp-orch-item"><span class="tp-orch-key">Episodic buffer</span><span class="tp-orch-val">${d.episodic_count} entries</span></div>
+        <div class="tp-orch-item"><span class="tp-orch-key">Vector archive</span><span class="tp-orch-val">${d.vector_count || 0} entries</span></div>
+        <div class="tp-orch-item"><span class="tp-orch-key">Evictions compressed</span><span class="tp-orch-val">${d.evictions_compressed || 0}</span></div>
+      </div>
+    </div>`;
+  }
+
+  // Step 7: Critique gaps (before findings)
+  if (step.step === 7 && d.gaps?.length) {
+    html = `<div class="tp-detail">
+      <div class="tp-detail-label">Gaps Identified</div>
+      ${d.gaps.map(g => `
+        <div class="tp-gap-item">
+          <div class="tp-gap-label">${g.gap}</div>
+          <div class="tp-gap-query">Search: ${g.search_query}</div>
+        </div>
+      `).join('')}
+    </div>` + html;
+  }
+
+  // Step 8: Final cost
+  if (step.step === 8 && d.cost_report) {
+    const c = d.cost_report;
+    html += `<div class="tp-detail">
+      <div class="tp-detail-label">Final Cost Breakdown</div>
+      <div class="tp-orch-grid">
+        <div class="tp-orch-item"><span class="tp-orch-key">Total cost</span><span class="tp-orch-val">$${(c.total_cost || 0).toFixed(4)}</span></div>
+        <div class="tp-orch-item"><span class="tp-orch-key">Budget used</span><span class="tp-orch-val">${(c.budget_used_pct || 0).toFixed(1)}%</span></div>
+        <div class="tp-orch-item"><span class="tp-orch-key">LLM calls</span><span class="tp-orch-val">${(c.call_log || []).length}</span></div>
+        <div class="tp-orch-item"><span class="tp-orch-key">Total tokens</span><span class="tp-orch-val">${((c.total_input_tokens||0)+(c.total_output_tokens||0)).toLocaleString()}</span></div>
+      </div>
+    </div>`;
+  }
+
+  return html;
+}
+
+// ── Collect references from accumulated steps ──
+function collectReferencesFromSteps() {
+  currentRefs = [];
+  const seen = new Set();
+  for (const step of streamedSteps) {
+    for (const r of (step.data?.researched || [])) {
+      for (const f of (r.findings || [])) {
+        if (!seen.has(f.source)) {
+          seen.add(f.source);
+          currentRefs.push({
+            url: f.source,
+            title: extractDomain(f.source),
+            query: r.sub_query || '',
+            relevance: f.relevance,
+            preview: f.content_preview || '',
+          });
+        }
+      }
+    }
+  }
+}
+
+// ── Main search with SSE streaming ──
+async function runSearch() {
+  const question = document.getElementById('query').value.trim();
+  if (!question) return;
+
+  const btn = document.getElementById('searchBtn');
+  btn.disabled = true;
+  btn.textContent = 'Researching...';
+
+  // Reset UI
+  completedSteps = [];
+  streamedSteps = [];
+  currentRefs = [];
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultsArea').style.display = 'none';
+  document.getElementById('answerBody').innerHTML = '';
+  document.getElementById('statsCard').innerHTML = '';
+  document.getElementById('refsCard').style.display = 'none';
+  document.getElementById('answerMeta').textContent = '';
+
+  // Show thought process panel, open and ready
+  const tp = document.getElementById('thoughtProcess');
+  tp.style.display = 'block';
+  document.getElementById('tpHeader').classList.add('open');
+  document.getElementById('tpBody').classList.add('open');
+  document.getElementById('tpBody').innerHTML = '';
+  document.getElementById('tpBadge').textContent = 'thinking...';
+  document.getElementById('tpBadge').classList.add('running');
+
+  renderPipeline(1);
+  const startTime = Date.now();
+
+  try {
+    const resp = await fetch(STREAM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Parse SSE events from buffer
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line
+
+      let eventType = null;
+      let eventData = '';
+
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          eventType = line.slice(7).trim();
+        } else if (line.startsWith('data: ')) {
+          eventData = line.slice(6);
+        } else if (line === '' && eventType && eventData) {
+          // Complete event — process it
+          handleSSEEvent(eventType, JSON.parse(eventData), startTime);
+          eventType = null;
+          eventData = '';
+        }
+      }
+    }
+
+  } catch (err) {
+    document.getElementById('resultsArea').style.display = 'block';
+    document.getElementById('answerBody').innerHTML =
+      `<div style="color:var(--red)">Error: ${err.message}</div>`;
+  }
+
+  document.getElementById('tpBadge').classList.remove('running');
+  btn.disabled = false;
+  btn.textContent = 'Research';
+}
+
+function handleSSEEvent(type, data, startTime) {
+  if (type === 'step') {
+    // Mark completed in pipeline
+    completedSteps.push(data.step);
+    const nextStep = data.step < 8 ? data.step + 1 : 0;
+    renderPipeline(nextStep);
+
+    // Update badge
+    document.getElementById('tpBadge').textContent = `${completedSteps.length}/8 steps`;
+
+    // Append to timeline
+    streamedSteps.push(data);
+    appendStepToTimeline(data);
+
+    // Collect refs as they come in (from research steps)
+    if (data.data?.researched) {
+      collectReferencesFromSteps();
+    }
+  }
+
+  if (type === 'done') {
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    // Finalize pipeline
+    completedSteps = [1,2,3,4,5,6,7,8];
+    renderPipeline(0);
+    document.getElementById('tpBadge').textContent = '8 steps';
+    document.getElementById('tpBadge').classList.remove('running');
+
+    // Collect all refs
+    collectReferencesFromSteps();
+
+    // Show answer + sidebar
+    document.getElementById('resultsArea').style.display = 'block';
+    document.getElementById('answerBody').innerHTML = formatAnswer(data.answer || 'No answer generated.');
+    document.getElementById('answerMeta').textContent = `${elapsed}s`;
+
+    renderStats(data, elapsed);
+    renderReferences();
+  }
+
+  if (type === 'error') {
+    document.getElementById('resultsArea').style.display = 'block';
+    document.getElementById('answerBody').innerHTML =
+      `<div style="color:var(--red)">Error: ${data.message}</div>`;
+    document.getElementById('tpBadge').textContent = 'error';
+    document.getElementById('tpBadge').classList.remove('running');
+  }
+}
+
+// ── Utilities ──
+
+function extractDomain(url) {
+  try { return new URL(url).hostname.replace('www.', ''); }
+  catch { return url.slice(0, 40); }
+}
+
+function formatAnswer(text) {
+  let html = text
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+  html = html.replace(/\[Source:\s*(.*?)\]/g, (match, src) => {
+    const idx = currentRefs.findIndex(r =>
+      src.includes(r.title) || r.url.includes(src) || r.query === src ||
+      src.includes(r.query?.slice(0, 30))
+    );
+    if (idx >= 0) {
+      return `<a class="ref-link" href="${currentRefs[idx].url}" target="_blank" title="${currentRefs[idx].url}" onmouseover="highlightRef(${idx})" onmouseout="unhighlightRef(${idx})">[${idx + 1}]</a>`;
+    }
+    return `<a class="ref-link" title="${src}">[*]</a>`;
+  });
+
+  html = html.replace(/\[Source:\s*R\((.*?)\)\]/g, (match, query) => {
+    const idx = currentRefs.findIndex(r => r.query && query.includes(r.query.slice(0, 25)));
+    if (idx >= 0) {
+      return `<a class="ref-link" href="${currentRefs[idx].url}" target="_blank" title="${currentRefs[idx].url}" onmouseover="highlightRef(${idx})" onmouseout="unhighlightRef(${idx})">[${idx + 1}]</a>`;
+    }
+    return `<a class="ref-link" title="${query}">[*]</a>`;
+  });
+
+  html = html.replace(/\[Source:\s*(https?:\/\/[^\]]+)\]/g, (match, url) => {
+    const idx = currentRefs.findIndex(r => r.url === url || url.startsWith(r.url));
+    if (idx >= 0) {
+      return `<a class="ref-link" href="${url}" target="_blank" onmouseover="highlightRef(${idx})" onmouseout="unhighlightRef(${idx})">[${idx + 1}]</a>`;
+    }
+    return `<a class="ref-link" href="${url}" target="_blank">[link]</a>`;
+  });
+
+  if (!html.startsWith('<')) html = '<p>' + html + '</p>';
+  return html;
+}
+
+function highlightRef(idx) {
+  const el = document.getElementById(`ref-${idx}`);
+  if (el) { el.classList.add('highlight'); el.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+}
+function unhighlightRef(idx) {
+  const el = document.getElementById(`ref-${idx}`);
+  if (el) el.classList.remove('highlight');
+}
+
+function renderStats(data, elapsed) {
+  const report = data.session_report || {};
+  const cost = report.cost_report || {};
+  const budgetPct = cost.budget_used_pct || 0;
+  const barClass = budgetPct > 80 ? 'danger' : budgetPct > 50 ? 'warn' : '';
+
+  document.getElementById('statsCard').innerHTML = `
+    <h3>Session Stats</h3>
+    <div class="stat-row"><span class="label">Time</span><span class="value">${elapsed}s</span></div>
+    <div class="stat-row"><span class="label">LLM Calls</span><span class="value">${(cost.call_log || []).length}</span></div>
+    <div class="stat-row"><span class="label">Input Tokens</span><span class="value">${(cost.total_input_tokens || 0).toLocaleString()}</span></div>
+    <div class="stat-row"><span class="label">Output Tokens</span><span class="value">${(cost.total_output_tokens || 0).toLocaleString()}</span></div>
+    <div class="stat-row"><span class="label">Total Cost</span><span class="value">$${(cost.total_cost || 0).toFixed(4)}</span></div>
+    <div class="stat-row"><span class="label">Budget Used</span><span class="value">${budgetPct.toFixed(1)}%</span></div>
+    <div class="budget-bar"><div class="budget-fill ${barClass}" style="width:${Math.min(budgetPct, 100)}%"></div></div>
+    <div class="stat-row" style="margin-top:8px"><span class="label">Episodic</span><span class="value">${report.episodic_entries || 0}</span></div>
+    <div class="stat-row"><span class="label">Archived</span><span class="value">${report.vector_entries || 0}</span></div>
+    <div class="stat-row"><span class="label">References</span><span class="value">${currentRefs.length}</span></div>
+  `;
+}
+
+function renderReferences() {
+  if (!currentRefs.length) return;
+  const el = document.getElementById('refsCard');
+  el.style.display = 'block';
+  el.innerHTML = `<h3>Sources (${currentRefs.length})</h3>` +
+    currentRefs.map((r, i) => `
+      <div class="ref-item" id="ref-${i}">
+        <span class="ref-num">${i + 1}</span>
+        <span class="ref-title">${r.title}</span>
+        <a class="ref-url" href="${r.url}" target="_blank">${r.url}</a>
+        ${r.query ? `<div class="ref-query">via: ${r.query.slice(0, 60)}</div>` : ''}
+      </div>
+    `).join('');
+}
+
+// Auto-resize textarea
+document.getElementById('query').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = this.scrollHeight + 'px';
+});
+
+// Enter to search
+document.getElementById('query').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runSearch(); }
+});
+</script>
+</body>
+</html>
